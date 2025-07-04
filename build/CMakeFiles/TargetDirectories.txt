@@ -1,0 +1,3 @@
+C:/Users/Seraph/Documents/focus/build/CMakeFiles/a.dir
+C:/Users/Seraph/Documents/focus/build/CMakeFiles/edit_cache.dir
+C:/Users/Seraph/Documents/focus/build/CMakeFiles/rebuild_cache.dir
