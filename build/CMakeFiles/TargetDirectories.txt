@@ -1,3 +1,0 @@
-/home/seraph/focus/build/CMakeFiles/focus.dir
-/home/seraph/focus/build/CMakeFiles/edit_cache.dir
-/home/seraph/focus/build/CMakeFiles/rebuild_cache.dir

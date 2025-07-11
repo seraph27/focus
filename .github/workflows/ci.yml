@@ -21,9 +21,7 @@ jobs:
           - 5432:5432
         options: >-
           --health-cmd="pg_isready -U user -d focus"
-          --health-interval=5s
-          --health-timeout=2s
-          --health-retries=5
+          --health-interval=5s --health-retries=5
 
     steps:
       - name: Checkout code
@@ -33,6 +31,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential cmake libpqxx-dev libasio-dev
+
+      - name: Clean previous build
+        run: rm -rf build CMakeCache.txt
 
       - name: Configure & build
         run: |

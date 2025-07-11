@@ -1,1 +1,0 @@
-/usr/bin/c++ CMakeFiles/focus.dir/src/main.cpp.o -o focus  -lpthread -lpqxx 
