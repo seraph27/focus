@@ -1,6 +1,15 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+
     services:
       postgres:
         image: postgres:15
@@ -12,38 +21,38 @@ jobs:
           - 5432:5432
         options: >-
           --health-cmd="pg_isready -U user -d focus"
-          --health-interval=5s --health-retries=5
+          --health-interval=5s
+          --health-timeout=2s
+          --health-retries=5
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y \
-               build-essential cmake libpqxx-dev libasio-dev
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake libpqxx-dev libasio-dev
 
       - name: Configure & build
         run: |
-          # -S . points at the source root (where CMakeLists.txt is)
-          # -B build creates/uses build/ for all CMake outputs
           cmake -S . -B build
           cmake --build build -- -j$(nproc)
 
-      - name: Apply migrations
+      - name: Apply database migrations
         run: |
           psql "host=127.0.0.1 port=5432 user=user password=pass dbname=focus" \
             < migrations/001_create_tasks.sql
 
-      - name: Launch service in background
+      - name: Launch service
         run: |
           ./build/focus &
-          sleep 3  # let it start
+          sleep 3
 
-      - name: Smoke-test health & CRUD
+      - name: Smoke tests
         run: |
           curl -f http://localhost:8080/healthz
           curl -f -X POST http://localhost:8080/tasks \
-               -H "Content-Type: application/json" \
-               -d '{"name":"ci-test"}'
+            -H "Content-Type: application/json" \
+            -d '{"name":"ci-test"}'
           curl -f http://localhost:8080/tasks | grep '"name":"ci-test"'
-
-      # (optional) tear-down step if you need to kill background jobs
