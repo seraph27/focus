@@ -3,7 +3,7 @@
 #include <vector>
 #include <pqxx/pqxx>
 
-static const std::string connectionStr = "host=localhost port=5432 dbname=focus user=user password=pass";
+static const std::string connectionStr = "host=db port=5432 dbname=focus user=user password=pass";
 struct Task {
     int id;
     std::string name;
