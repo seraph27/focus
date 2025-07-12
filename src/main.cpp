@@ -23,26 +23,27 @@ struct Task {
     int id;
     std::string name;
     bool done;
+    std::string start_at, end_at;
 };
 
-Task createTask(pqxx::connection& db, const std::string& name) {
+Task createTask(pqxx::connection& db, const std::string& name, const std::string& start_at, const std::string& end_at) {
     pqxx::work tx{db};
     //exec1 does not work with $1 substitution
     pqxx::result r = tx.exec_params(
-        "INSERT INTO tasks(name) VALUES($1) RETURNING id, done",
-        name
+        "INSERT INTO tasks(name, start_at, end_at) VALUES($1, $2, $3) RETURNING id, name, done, start_at, end_at",
+        name, start_at, end_at
     );
     tx.commit();
     auto row = r[0];
-    return { row[0].as<int>(), name, row[1].as<bool>() };
+    return { row[0].as<int>(), name, row[2].as<bool>(), row[3].as<std::string>(), row[4].as<std::string>() };
 }
 
 std::vector<Task> listTasks(pqxx::connection& db) {
     pqxx::read_transaction tx{db};
-    pqxx::result rows = tx.exec("SELECT id, name, done FROM tasks");
+    pqxx::result rows = tx.exec("SELECT id, name, done, start_at, end_at FROM tasks ORDER BY id");
     std::vector<Task> out;
     for (const auto& r : rows) {
-      out.push_back({ r[0].as<int>(), r[1].as<std::string>(), r[2].as<bool>() });
+      out.push_back({ r[0].as<int>(), r[1].as<std::string>(), r[2].as<bool>(), r[3].as<std::string>(), r[4].as<std::string>()});
     }
     return out;
 }
@@ -66,6 +67,8 @@ int main() {
             x[i]["id"]   = tasks[i].id;
             x[i]["name"] = tasks[i].name;
             x[i]["done"] = tasks[i].done;
+            x[i]["start_at"] = tasks[i].start_at;
+            x[i]["end_at"] = tasks[i].end_at;
         }
         return crow::response{x};
     });
@@ -73,12 +76,12 @@ int main() {
     CROW_ROUTE(app, "/tasks").methods("POST"_method)
     ([&](const crow::request& req){
         auto body = crow::json::load(req.body);
-        if (!body || !body.has("name")) {
-            return crow::response{400, "Missing field: title"};
+        if (!body || !body.has("name") || !body.has("start_at") || !body.has("end_at")) {
+            return crow::response{400, "Missing field (name/start_at/end_at)"};
         }
         Task t;
         try {
-            t = createTask(db, body["name"].s());
+            t = createTask(db, body["name"].s(), body["start_at"].s(), body["end_at"].s());
         } catch (const std::exception &e) {
             CROW_LOG_ERROR << "DB exception: " << e.what();
             crow::response r;
@@ -90,6 +93,8 @@ int main() {
         res["id"]    = t.id;
         res["name"] = t.name;
         res["done"]  = t.done;
+        res["start_at"] = t.start_at;
+        res["end_at"] = t.end_at;
 
         auto r = crow::response(res);
         r.code=201;
