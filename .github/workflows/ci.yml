@@ -57,4 +57,4 @@ jobs:
       - name: Smoke tests
         env:
           DB_CONN: "host=127.0.0.1 port=5432 user=user password=pass dbname=focus"
-        run: ./scripts/smoke.sh
+        run: bash ./scripts/smoke.sh
