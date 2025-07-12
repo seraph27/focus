@@ -56,8 +56,6 @@ jobs:
 
       - name: Smoke tests
         run: |
-          curl -f http://localhost:8080/healthz
-          curl -f -X POST http://localhost:8080/tasks \
-            -H "Content-Type: application/json" \
-            -d '{"name":"ci-test","start_at":"2025-07-12T00:00:00Z","end_at":"2025-07-12T01:00:00Z"}'
-          curl -f http://localhost:8080/tasks | grep '"name":"ci-test"'
+          echo ">>>> Running smoke.sh!! <<<<"
+          chmod +x ../../scripts/smoke.sh
+          ./smoke.sh
