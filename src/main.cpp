@@ -3,7 +3,22 @@
 #include <vector>
 #include <pqxx/pqxx>
 
-static const std::string connectionStr = "host=db port=5432 dbname=focus user=user password=pass";
+static std::string makeConnectionStr() {
+    const char* host = std::getenv("DB_HOST");
+    const char* port = std::getenv("DB_PORT");
+    const char* user = std::getenv("DB_USER");
+    const char* pass = std::getenv("DB_PASS");
+    const char* name = std::getenv("DB_NAME");
+
+    std::string h = host ? host : "db";
+    std::string p = port ? port : "5432";
+    std::string u = user ? user : "user";
+    std::string pw = pass ? pass : "pass";
+    std::string n = name ? name : "focus";
+
+    return "host=" + h + " port=" + p + " dbname=" + n +
+           " user=" + u + " password=" + pw;
+}
 struct Task {
     int id;
     std::string name;
@@ -34,7 +49,7 @@ std::vector<Task> listTasks(pqxx::connection& db) {
 
 int main() {
     crow::SimpleApp app;
-    pqxx::connection db{connectionStr};
+    pqxx::connection db{makeConnectionStr()};
 
     std::mutex mux;
 
@@ -79,6 +94,48 @@ int main() {
         auto r = crow::response(res);
         r.code=201;
         return r;
+    });
+
+    CROW_ROUTE(app, "/tasks/<int>").methods("PATCH"_method)
+    ([&](const crow::request& req, int id){
+        auto body = crow::json::load(req.body);
+        try {
+            pqxx::work tx{db};
+            pqxx::result r;
+            if (body && body.has("done")) {
+                r = tx.exec_params("UPDATE tasks SET done=$1 WHERE id=$2", body["done"].b(), id);
+            } else {
+                r = tx.exec_params("UPDATE tasks SET done=NOT done WHERE id=$1", id);
+            }
+            if (r.affected_rows() == 0) {
+                tx.commit();
+                return crow::response{404};
+            }
+            tx.commit();
+            return crow::response{204};
+        } catch (const std::exception& e) {
+            CROW_LOG_ERROR << "DB exception: " << e.what();
+            crow::response r; r.code=500; r.body=e.what();
+            return r;
+        }
+    });
+
+    CROW_ROUTE(app, "/tasks/<int>").methods("DELETE"_method)
+    ([&](int id){
+        try {
+            pqxx::work tx{db};
+            pqxx::result r = tx.exec_params("DELETE FROM tasks WHERE id=$1", id);
+            if (r.affected_rows() == 0) {
+                tx.commit();
+                return crow::response{404};
+            }
+            tx.commit();
+            return crow::response{204};
+        } catch (const std::exception& e) {
+            CROW_LOG_ERROR << "DB exception: " << e.what();
+            crow::response r; r.code=500; r.body=e.what();
+            return r;
+        }
     });
     app.port(8080).multithreaded().run();
     return 0;
