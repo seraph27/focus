@@ -1,18 +1,30 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
-API=http://localhost:8080
+# Base API endpoint for the running service
+API="${API:-http://localhost:8080}"
+# Connection string for psql; defaults match docker-compose and CI
+DB_CONN="${DB_CONN:-host=127.0.0.1 port=5432 user=user password=pass dbname=focus}"
 
 echo "Resetting tasks table…"
-docker exec -i focus-db-1 psql -U user -d focus <<SQL
+
+if command -v psql >/dev/null 2>&1; then
+  psql "$DB_CONN" <<'SQL'
 TRUNCATE TABLE tasks RESTART IDENTITY;
 SQL
+elif command -v docker >/dev/null 2>&1; then
+  docker compose exec -T db psql -U user -d focus <<'SQL'
+TRUNCATE TABLE tasks RESTART IDENTITY;
+SQL
+else
+  echo "Warning: psql not found; skipping DB reset" >&2
+fi
 
 echo "Health check…"
-curl -i -f $API/healthz
+curl -fsS $API/healthz
 
 echo "Create…"
-curl -i -f -X POST $API/tasks \
+curl -fsS -X POST $API/tasks \
      -H "Content-Type: application/json" \
      -d '{
            "name":"CI Test",
@@ -21,20 +33,20 @@ curl -i -f -X POST $API/tasks \
          }'
 
 echo "List…"
-curl -i -f $API/tasks | grep '"id":1'
+curl -fsS $API/tasks | grep '"id":1'
 
 echo "Patch…"
-curl -i -f -X PATCH $API/tasks/1 \
+curl -fsS -X PATCH $API/tasks/1 \
      -H "Content-Type: application/json" \
      -d '{"done":true}'
 
 echo "Verify done…"
-curl -i -f $API/tasks | grep '"done":true'
+curl -fsS $API/tasks | grep '"done":true'
 
 echo "Delete…"
-curl -i -f -X DELETE $API/tasks/1
+curl -fsS -X DELETE $API/tasks/1
 
 echo "Final list…"
-curl -i -f $API/tasks
+curl -fsS $API/tasks
 
 echo "All tests passed!"

@@ -30,7 +30,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake libpqxx-dev libasio-dev
+          sudo apt-get install -y build-essential cmake libpqxx-dev libasio-dev postgresql-client
 
       - name: Clean previous build
         run: rm -rf build CMakeCache.txt
@@ -55,7 +55,6 @@ jobs:
           sleep 3
 
       - name: Smoke tests
-        run: |
-          echo ">>>> Running smoke.sh!! <<<<"
-          chmod +x ../../scripts/smoke.sh
-          ./smoke.sh
+        env:
+          DB_CONN: "host=127.0.0.1 port=5432 user=user password=pass dbname=focus"
+        run: ./scripts/smoke.sh
