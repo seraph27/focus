@@ -46,6 +46,8 @@ jobs:
             < migrations/001_create_tasks.sql
 
       - name: Launch service
+        env:
+          DB_HOST: 127.0.0.1
         run: |
           ./build/focus &
           sleep 3

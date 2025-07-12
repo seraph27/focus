@@ -3,7 +3,22 @@
 #include <vector>
 #include <pqxx/pqxx>
 
-static const std::string connectionStr = "host=db port=5432 dbname=focus user=user password=pass";
+static std::string makeConnectionStr() {
+    const char* host = std::getenv("DB_HOST");
+    const char* port = std::getenv("DB_PORT");
+    const char* user = std::getenv("DB_USER");
+    const char* pass = std::getenv("DB_PASS");
+    const char* name = std::getenv("DB_NAME");
+
+    std::string h = host ? host : "db";
+    std::string p = port ? port : "5432";
+    std::string u = user ? user : "user";
+    std::string pw = pass ? pass : "pass";
+    std::string n = name ? name : "focus";
+
+    return "host=" + h + " port=" + p + " dbname=" + n +
+           " user=" + u + " password=" + pw;
+}
 struct Task {
     int id;
     std::string name;
@@ -34,7 +49,7 @@ std::vector<Task> listTasks(pqxx::connection& db) {
 
 int main() {
     crow::SimpleApp app;
-    pqxx::connection db{connectionStr};
+    pqxx::connection db{makeConnectionStr()};
 
     std::mutex mux;
 
