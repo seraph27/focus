@@ -51,7 +51,8 @@ std::vector<Task> listTasks(pqxx::connection& db) {
 int main() {
     crow::SimpleApp app;
     pqxx::connection db{makeConnectionStr()};
-
+    
+    //pqxx::connection is not thread safe, protect with mutex
     std::mutex mux;
 
     //check health
@@ -61,6 +62,7 @@ int main() {
 
     CROW_ROUTE(app, "/tasks").methods("GET"_method)
     ([&](){
+        std::lock_guard<std::mutex> guard(mux);
         auto tasks = listTasks(db);
         crow::json::wvalue x;
         for (int i = 0; i < (int)tasks.size(); i++) {
@@ -75,6 +77,7 @@ int main() {
     
     CROW_ROUTE(app, "/tasks").methods("POST"_method)
     ([&](const crow::request& req){
+        std::lock_guard<std::mutex> guard(mux);
         auto body = crow::json::load(req.body);
         if (!body || !body.has("name") || !body.has("start_at") || !body.has("end_at")) {
             return crow::response{400, "Missing field (name/start_at/end_at)"};
@@ -103,6 +106,7 @@ int main() {
 
     CROW_ROUTE(app, "/tasks/<int>").methods("PATCH"_method)
     ([&](const crow::request& req, int id){
+        std::lock_guard<std::mutex> guard(mux);
         auto body = crow::json::load(req.body);
         try {
             pqxx::work tx{db};
@@ -127,6 +131,7 @@ int main() {
 
     CROW_ROUTE(app, "/tasks/<int>").methods("DELETE"_method)
     ([&](int id){
+        std::lock_guard<std::mutex> guard(mux);
         try {
             pqxx::work tx{db};
             pqxx::result r = tx.exec_params("DELETE FROM tasks WHERE id=$1", id);
