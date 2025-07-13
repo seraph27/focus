@@ -24,7 +24,7 @@ target_link_libraries(focus PRIVATE focuslib)
 # locatino of crow_all.h (and other headers)
 target_include_directories(focus PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
-add_executable(task_tests tests/catch_main.cpp tests/catch_amalgamated.cpp)
+add_executable(task_tests tests/catch_amalgamated.cpp)
 target_link_libraries(task_tests PRIVATE focuslib)
 target_include_directories(task_tests PRIVATE ${CMAKE_SOURCE_DIR}/include)
 add_test(NAME task_tests COMMAND task_tests)
