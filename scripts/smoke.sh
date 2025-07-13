@@ -32,6 +32,19 @@ curl -fsS -X POST $API/tasks \
            "end_at":"2025-07-12T01:00:00Z"
          }'
 
+echo "Invalid create…"
+status=$(curl -s -o /dev/null -w "%{http_code}" -X POST $API/tasks \
+        -H "Content-Type: application/json" \
+        -d '{
+              "name":"Bad",
+              "start_at":"2025-07-12T02:00:00Z",
+              "end_at":"2025-07-12T01:00:00Z"
+            }')
+if [ "$status" != "400" ]; then
+  echo "Expected 400, got $status" >&2
+  exit 1
+fi
+
 echo "List…"
 curl -fsS $API/tasks | grep '"id":1'
 

@@ -2,7 +2,23 @@
 #include "tasks.h"
 
 #include <mutex>
+#include <chrono>
+#include <sstream>
+#include <iomanip>
+#include <optional>
+#include <ctime>
 
+static std::optional<std::chrono::system_clock::time_point>
+parseTimestamp(const std::string &s) {
+    std::tm tm{};
+    std::istringstream ss{s};
+    ss >> std::get_time(&tm, "%Y-%m-%dT%H:%M:%SZ");
+    if (ss.fail()) {
+        return std::nullopt;
+    }
+    std::time_t t = timegm(&tm);
+    return std::chrono::system_clock::from_time_t(t);
+}
 
 
 int main() {
@@ -39,6 +55,15 @@ int main() {
         if (!body || !body.has("name") || !body.has("start_at") || !body.has("end_at")) {
             return crow::response{400, "Missing field (name/start_at/end_at)"};
         }
+        auto start_tp = parseTimestamp(body["start_at"].s());
+        auto end_tp   = parseTimestamp(body["end_at"].s());
+        if (!start_tp || !end_tp) {
+            return crow::response{400, "BAD timestamp"};
+        }
+        if (*start_tp >= *end_tp) {
+            return crow::response{400, "start must be before end"};
+        }
+
         Task t;
         try {
             t = createTask(db, body["name"].s(), body["start_at"].s(), body["end_at"].s());
