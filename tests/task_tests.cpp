@@ -1,5 +1,4 @@
-#define CATCH_CONFIG_MAIN
-#include "catch_amalgamated.hpp"
+#include <catch2/catch_all.hpp>
 #include "tasks.h"
 
 TEST_CASE("createTask and listTasks", "[db]") {
