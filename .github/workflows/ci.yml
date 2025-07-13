@@ -47,6 +47,11 @@ jobs:
           psql "host=127.0.0.1 port=5432 user=user password=pass dbname=focus" \
             < migrations/002_add_schedule.sql
 
+      - name: Unit tests
+        env: 
+          DB_HOST: 127.0.0.1
+        run: ctest --test-dir build --output-on-failure
+
       - name: Launch service
         env:
           DB_HOST: 127.0.0.1

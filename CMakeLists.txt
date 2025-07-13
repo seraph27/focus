@@ -1,24 +1,30 @@
 cmake_minimum_required(VERSION 3.16)
 project(Focus VERSION 0.1 LANGUAGES CXX)
 
+include(CTest)
+enable_testing()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Locate libpqxx via pkg-config and create an imported target
+#locate libpqxx
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(PQXX REQUIRED IMPORTED_TARGET libpqxx)
 
-# Define the executable
-add_executable(focus src/main.cpp)
+add_library(focuslib src/tasks.cpp)
+target_include_directories(focuslib PUBLIC ${CMAKE_SOURCE_DIR}/include)
+target_link_libraries(focuslib PUBLIC
+  PkgConfig::PQXX
+  pthread
+)
 
-# Tell the compiler where to find crow_all.h (and other headers)
+add_executable(focus src/main.cpp)
+target_link_libraries(focus PRIVATE focuslib)
+# locatino of crow_all.h (and other headers)
 target_include_directories(focus PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
-# Link against libpqxx (and its dependencies) and pthread for threading
-target_link_libraries(focus
-  PRIVATE
-    PkgConfig::PQXX
-    pthread
-)
+add_executable(task_tests tests/task_tests.cpp)
+target_link_libraries(task_tests PRIVATE focuslib)
+target_include_directories(task_tests PRIVATE ${CMAKE_SOURCE_DIR}/include)
+add_test(NAME task_tests COMMAND task_tests)
