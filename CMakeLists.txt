@@ -26,7 +26,7 @@ FetchContent_Declare(
 
 
 FetchContent_MakeAvailable(Catch2)
-add_library(focuslib src/tasks.cpp)
+add_library(focuslib src/tasks.cpp src/auth.cpp src/middleware.cpp)
 target_include_directories(focuslib PUBLIC ${CMAKE_SOURCE_DIR}/include)
 target_link_libraries(focuslib PUBLIC
   PkgConfig::PQXX

@@ -1,5 +1,7 @@
 #include "crow_all.h"
 #include "tasks.h"
+#include "middleware.h"
+#include "auth.h"
 
 #include <mutex>
 #include <chrono>
@@ -22,7 +24,7 @@ parseTimestamp(const std::string &s) {
 
 
 int main() {
-    crow::SimpleApp app;
+    crow::Crow<AuthMiddleware> app;
     pqxx::connection db{makeConnectionStr()};
     
     //pqxx::connection is not thread safe, protect with mutex
@@ -129,6 +131,30 @@ int main() {
             return r;
         }
     });
+    CROW_ROUTE(app, "/register").methods("POST"_method)
+    ([&](const crow::request& req){
+        // NOTE: You should implement user registration logic here.
+        // This is just a placeholder.
+        return crow::response{201, "User registered"};
+    });
+
+    CROW_ROUTE(app, "/login").methods("POST"_method)
+    ([&](const crow::request& req){
+        // NOTE: You should implement user login logic here.
+        // This is just a placeholder.
+        std::string token = generate_jwt("1");
+        crow::json::wvalue res;
+        res["token"] = token;
+        return crow::response{res};
+    });
+
+    // Example of a protected route
+    CROW_ROUTE(app, "/protected").methods("GET"_method)
+    .CROW_MIDDLEWARES(app, AuthMiddleware)
+    ([](){
+        return crow::response{"You have accessed a protected route."};
+    });
+
     app.port(8080).multithreaded().run();
     return 0;
 }
